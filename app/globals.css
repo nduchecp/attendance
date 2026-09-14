@@ -1,0 +1,226 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-poppins: "Poppins", system-ui, -apple-system, sans-serif;
+  --font-inter: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html.dark body {
+  background-color: #06101e; /* Deep Midnight Navy backdrop */
+  color: #f8fafc;
+}
+
+html.light body {
+  background-color: #f1f5f9; /* Clean slate-tinted backdrop with strong contrast against white cards */
+  color: #092B5A; /* Deep Midnight Navy primary text */
+}
+
+body {
+  font-family: var(--font-inter);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-poppins);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #06101e;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Table styling utilities */
+.table-sticky-header th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Hide scrollbar utility for clean mobile horizontal carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Reference 3: Tactile Button Aesthetics & Micro-interactions */
+.btn-tactile-primary {
+  background: linear-gradient(180deg, #2544dc 0%, #1733C0 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px -1px rgba(23, 51, 192, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-tactile-primary:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 20px -2px rgba(23, 51, 192, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  filter: brightness(1.05);
+}
+.btn-tactile-primary:active:not(:disabled) {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 2px 6px -1px rgba(23, 51, 192, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-tactile-secondary {
+  background: #ffffff;
+  color: #092B5A;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 2px 8px -1px rgba(9, 43, 90, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+html.dark .btn-tactile-secondary {
+  background: #0f1d38;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.btn-tactile-secondary:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px -2px rgba(9, 43, 90, 0.12);
+}
+html.dark .btn-tactile-secondary:hover:not(:disabled) {
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.btn-tactile-secondary:active:not(:disabled) {
+  transform: translateY(0px) scale(0.98);
+}
+
+.btn-tactile-danger {
+  background: linear-gradient(180deg, #f43f5e 0%, #e11d48 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px -1px rgba(225, 29, 72, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-tactile-danger:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 20px -2px rgba(225, 29, 72, 0.45);
+  filter: brightness(1.06);
+}
+.btn-tactile-danger:active:not(:disabled) {
+  transform: translateY(0px) scale(0.98);
+}
+
+.btn-tactile-teal {
+  background: linear-gradient(180deg, #138889 0%, #0E6F70 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px -1px rgba(14, 111, 112, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-tactile-teal:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 20px -2px rgba(14, 111, 112, 0.45);
+}
+.btn-tactile-teal:active:not(:disabled) {
+  transform: translateY(0px) scale(0.98);
+}
+
+/* Official Microsoft Excel Green Tactile Button */
+.btn-tactile-excel {
+  background: linear-gradient(180deg, #107C41 0%, #0d6334 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 14px -1px rgba(16, 124, 65, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-tactile-excel:hover:not(:disabled) {
+  background: linear-gradient(180deg, #158a49 0%, #107C41 100%);
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 20px -2px rgba(16, 124, 65, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.btn-tactile-excel:active:not(:disabled) {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 2px 6px -1px rgba(16, 124, 65, 0.35);
+}
+
+/* Executive Deep Midnight Navy Button (#092B5A) */
+.btn-tactile-navy {
+  background: linear-gradient(180deg, #0e3771 0%, #092B5A 100%);
+  color: #ffffff;
+  border: 1px solid rgba(151, 198, 230, 0.3);
+  font-weight: 700;
+  box-shadow: 0 4px 14px -1px rgba(9, 43, 90, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-tactile-navy:hover:not(:disabled) {
+  background: linear-gradient(180deg, #13458a 0%, #0c3369 100%);
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 22px -2px rgba(9, 43, 90, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.btn-tactile-navy:active:not(:disabled) {
+  background: #092B5A;
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 2px 6px -1px rgba(9, 43, 90, 0.35);
+}
+
+/* Reference 2 Vibrant Sunshine Yellow / Gold Login Button */
+.btn-tactile-gold {
+  background: #FFC000;
+  color: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+  box-shadow: 0 4px 14px -1px rgba(255, 192, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-tactile-gold:hover:not(:disabled) {
+  background: #ffb700;
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 20px -2px rgba(255, 192, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.btn-tactile-gold:active:not(:disabled) {
+  background: #f0a800;
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 2px 6px -1px rgba(255, 192, 0, 0.35);
+}
+
+/* Prevent Chrome autofill pale blue/yellow background clash */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: currentColor !important;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: inset 0 0 20px 20px transparent !important;
+}
+
