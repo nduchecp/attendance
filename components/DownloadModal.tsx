@@ -100,7 +100,10 @@ export function DownloadModal({
               </div>
             ) : (
               <div className="relative w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-900/40 border-2 border-emerald-400 dark:border-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 animate-scaleUp">
-                <CheckCircle2 className="w-11 h-11 text-emerald-600 dark:text-emerald-400" />
+                <MicrosoftExcel className="w-11 h-11 drop-shadow-md" />
+                <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#107C41] text-white flex items-center justify-center shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </span>
               </div>
             )}
           </div>

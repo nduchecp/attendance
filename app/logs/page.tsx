@@ -8,7 +8,8 @@ import {
   Clock,
   Cpu,
   Trash2,
-  Edit2,
+  Eye,
+  ShieldCheck,
   CalendarDays,
   CheckCircle,
   Fingerprint,
@@ -18,6 +19,7 @@ import {
   Check,
   FileSpreadsheet,
   ArrowUpDown,
+  Radio,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { MicrosoftExcel } from "@/components/MicrosoftExcel";
@@ -42,6 +44,7 @@ export default function LogsPage() {
   const [logs, setLogs] = useState<FirestoreLog[]>([]);
   const [users, setUsers] = useState<FirestoreUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date>(new Date());
 
   // Filters
   const [rangePreset, setRangePreset] = useState<DateRangePreset>("week");
@@ -62,11 +65,6 @@ export default function LogsPage() {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [downloadFilename, setDownloadFilename] = useState("");
   const [downloadWorkbook, setDownloadWorkbook] = useState<XLSX.WorkBook | null>(null);
-
-  // Edit log form state
-  const [editStatus, setEditStatus] = useState("");
-  const [editTimestamp, setEditTimestamp] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Compute date strings based on preset
@@ -107,9 +105,9 @@ export default function LogsPage() {
     }
   }, []);
 
-  // Fetch logs with query parameters
-  const fetchLogs = useCallback(async () => {
-    setIsLoading(true);
+  // Fetch logs with query parameters (supports silent auto-sync polling)
+  const fetchLogs = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (fromDate) params.set("from", fromDate);
@@ -136,13 +134,16 @@ export default function LogsPage() {
           );
         }
         setLogs(result);
-      } else {
+        setLastSyncedAt(new Date());
+      } else if (!silent) {
         toastError(data.error || "Failed to fetch attendance logs");
       }
     } catch {
-      toastError("Network error: Could not retrieve attendance logs.");
+      if (!silent) {
+        toastError("Network error: Could not retrieve attendance logs.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [fromDate, toDate, statusFilter, toastError]);
 
@@ -150,10 +151,22 @@ export default function LogsPage() {
     fetchUsers();
   }, [fetchUsers]);
 
+  // Initial fetch and on filter changes
   useEffect(() => {
-    fetchLogs();
+    fetchLogs(false);
     setCurrentPage(1);
   }, [fetchLogs]);
+
+  // Automatic live background sync: polls Firestore every 8 seconds without interrupting the UI
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Avoid auto-syncing if a modal or drawer is active to preserve user context
+      if (!isDetailDrawerOpen && !isDeleteModalOpen && !isDownloadModalOpen) {
+        fetchLogs(true);
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [fetchLogs, isDetailDrawerOpen, isDeleteModalOpen, isDownloadModalOpen]);
 
   // Lookup map for user_id -> user
   const userMap = useMemo(() => {
@@ -162,44 +175,10 @@ export default function LogsPage() {
     return map;
   }, [users]);
 
-  // Open log detail drawer
+  // Open log detail drawer (read-only audit inspection)
   const handleOpenDetail = (log: FirestoreLog) => {
     setSelectedLog(log);
-    setEditStatus(log.status);
-    setEditTimestamp(log.timestamp);
     setIsDetailDrawerOpen(true);
-  };
-
-  // Update log (PATCH /api/logs/:id)
-  const handleUpdateLog = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedLog) return;
-
-    setIsUpdating(true);
-    try {
-      const res = await fetch(`/api/logs/${selectedLog.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: editStatus.trim(),
-          timestamp: editTimestamp.trim(),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        toastError(data.error || "Failed to update attendance log");
-        return;
-      }
-
-      success("Attendance log updated successfully");
-      setIsDetailDrawerOpen(false);
-      fetchLogs();
-    } catch {
-      toastError("Failed to update log. Please try again.");
-    } finally {
-      setIsUpdating(false);
-    }
   };
 
   // Prompt delete modal
@@ -341,6 +320,19 @@ export default function LogsPage() {
     <AppShell
       primaryAction={
         <div className="flex items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+          {/* Automatic Live Sync Indicator */}
+          <div 
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold select-none shadow-2xs"
+            title={`Real-time sync active (polled every 8s). Last synced: ${lastSyncedAt.toLocaleTimeString()}`}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="hidden sm:inline">Auto-Sync</span>
+            <span className="sm:hidden">Live</span>
+          </div>
+
           {/* Export Excel (.xlsx) with official Microsoft Excel icon & tactile green styling */}
           <button
             onClick={exportToExcel}
@@ -354,9 +346,10 @@ export default function LogsPage() {
 
           {/* Refresh */}
           <button
-            onClick={fetchLogs}
+            onClick={() => fetchLogs(false)}
             disabled={isLoading}
             className="btn-tactile-secondary inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl"
+            title="Instant manual sync"
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand-teal dark:text-brand-sky" : ""}`}
@@ -524,9 +517,9 @@ export default function LogsPage() {
                           <button
                             onClick={() => handleOpenDetail(log)}
                             className="p-1.5 text-slate-600 hover:text-[#1733C0] dark:text-slate-400 dark:hover:text-[#97C6E6] hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                            title="Edit Log"
+                            title="Inspect Verification Record"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={(e) => handlePromptDelete(log, e)}
@@ -630,9 +623,9 @@ export default function LogsPage() {
                               <button
                                 onClick={() => handleOpenDetail(log)}
                                 className="p-2 text-slate-600 hover:text-[#1733C0] dark:text-slate-400 dark:hover:text-[#97C6E6] hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors border border-transparent hover:border-blue-200"
-                                title="Edit Log"
+                                title="Inspect Verification Record"
                               >
-                                <Edit2 className="w-4 h-4" />
+                                <Eye className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={(e) => handlePromptDelete(log, e)}
@@ -662,12 +655,12 @@ export default function LogsPage() {
         </div>
       </div>
 
-      {/* Log Detail & Edit Drawer */}
+      {/* Log Audit Record Drawer (Immutable / Fraud-Protected) */}
       <Drawer
         isOpen={isDetailDrawerOpen}
         onClose={() => setIsDetailDrawerOpen(false)}
-        title="Attendance Event Details"
-        subtitle={selectedLog ? `Record #${selectedLog.id}` : undefined}
+        title="Attendance Audit Record"
+        subtitle={selectedLog ? `Immutable Record #${selectedLog.id}` : undefined}
         footer={
           <div className="flex items-center justify-between">
             <button
@@ -681,31 +674,18 @@ export default function LogsPage() {
               <span>Delete Log</span>
             </button>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsDetailDrawerOpen(false)}
-                className="btn-tactile-secondary px-4 py-2 text-xs font-medium rounded-xl"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="log-edit-form"
-                disabled={isUpdating}
-                className="btn-tactile-primary px-4 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5"
-              >
-                {isUpdating && (
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                )}
-                <span>Save Correction</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsDetailDrawerOpen(false)}
+              className="btn-tactile-primary px-5 py-2 text-xs font-semibold rounded-xl"
+            >
+              Close Record
+            </button>
           </div>
         }
       >
         {selectedLog && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* User identification section */}
             <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl">
               <Avatar
@@ -717,8 +697,8 @@ export default function LogsPage() {
                 photoUrl={userMap.get(selectedLog.user_id)?.photo_url}
                 size="lg"
               />
-              <div>
-                <h3 className="text-lg font-heading font-bold text-brand-navy dark:text-white">
+              <div className="min-w-0">
+                <h3 className="text-lg font-heading font-bold text-brand-navy dark:text-white truncate">
                   {userMap.get(selectedLog.user_id)?.name ||
                     `User #${selectedLog.user_id}`}
                 </h3>
@@ -731,84 +711,50 @@ export default function LogsPage() {
               </div>
             </div>
 
-            {/* Read-only Hardware context */}
-            <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl">
+            {/* Hardware & Record Details */}
+            <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl">
               <div>
-                <span className="text-[11px] text-slate-400 block mb-0.5">
-                  Device Hardware
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                  Terminal Hardware
                 </span>
-                <span className="font-mono text-xs text-brand-navy dark:text-slate-200 font-semibold">
+                <span className="font-mono text-xs text-brand-navy dark:text-slate-200 font-bold">
                   {selectedLog.device || "Pi_3_Model_B"}
                 </span>
               </div>
               <div>
-                <span className="text-[11px] text-slate-400 block mb-0.5">
-                  Log Record ID
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">
+                  Audit Record ID
                 </span>
-                <span className="font-mono text-xs text-brand-navy dark:text-slate-200 font-semibold">
+                <span className="font-mono text-xs text-brand-navy dark:text-slate-200 font-bold">
                   #{selectedLog.id}
                 </span>
               </div>
             </div>
 
-            {/* Correction Form */}
-            <form id="log-edit-form" onSubmit={handleUpdateLog} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Status Description (Editable)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value)}
-                  placeholder="e.g. Verified (Fingerprint) or Verified (Face)"
-                  className="w-full bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-brand-blue"
-                />
-                <div className="flex gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditStatus("Verified (Fingerprint)")}
-                    className="text-[11px] px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-200 dark:border-emerald-500/30"
-                  >
-                    Fingerprint
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditStatus("Verified (Face)")}
-                    className="text-[11px] px-2.5 py-1 bg-brand-blue/10 dark:bg-brand-blue/20 hover:bg-brand-blue/20 text-brand-blue dark:text-brand-sky rounded-lg border border-brand-blue/30"
-                  >
-                    Face
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditStatus("Failed / Unrecognized")}
-                    className="text-[11px] px-2.5 py-1 bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 text-rose-700 dark:text-rose-300 rounded-lg border border-rose-200 dark:border-rose-500/30"
-                  >
-                    Failed
-                  </button>
+            {/* Timestamp Verification Card */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block mb-1 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                Capture Timestamp
+              </span>
+              <span className="font-mono text-sm text-slate-900 dark:text-slate-100 font-semibold">
+                {selectedLog.timestamp}
+              </span>
+            </div>
+
+            {/* Fraud Prevention & Regulatory Notice */}
+            <div className="p-4 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/90 dark:border-amber-800/60 rounded-2xl flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="space-y-1 text-xs">
+                <div className="font-heading font-bold text-amber-950 dark:text-amber-200">
+                  Immutable Biometric Audit Record
                 </div>
+                <p className="text-amber-900/80 dark:text-amber-300/80 leading-relaxed text-[11px]">
+                  Attendance event entries recorded by the physical Raspberry Pi sensor terminal are cryptographically locked. Timestamps and verification outcomes cannot be modified in the dashboard to uphold regulatory compliance and eliminate fraud.
+                </p>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Timestamp (YYYY-MM-DD HH:MM:SS)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editTimestamp}
-                  onChange={(e) => setEditTimestamp(e.target.value)}
-                  placeholder="2026-09-14 09:30:00"
-                  className="w-full bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-brand-blue"
-                />
-              </div>
-
-              <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Manual corrections update the Firestore attendance log only.
-                Pi local SQLite history is not modified.
-              </div>
-            </form>
+            </div>
           </div>
         )}
       </Drawer>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -25,9 +25,10 @@ export default function DashboardPage() {
   const [logs, setLogs] = useState<FirestoreLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date>(new Date());
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     setError(null);
     try {
       const [usersRes, logsRes] = await Promise.all([
@@ -44,17 +45,28 @@ export default function DashboardPage() {
       if (logsRes.ok && logsData.logs) {
         setLogs(logsData.logs);
       }
+      setLastSyncedAt(new Date());
     } catch (err) {
       console.error("Dashboard fetch error:", err);
-      setError("Unable to load data from the server. Check Firestore connection.");
+      if (!silent) {
+        setError("Unable to load data from the server. Check Firestore connection.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(false);
+  }, [fetchData]);
+
+  // Live auto-sync interval: refresh statistics & activity every 10 seconds silently
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   // Map user ID to user object for quick name/avatar lookup
   const userMap = useMemo(() => {
@@ -139,16 +151,32 @@ export default function DashboardPage() {
   return (
     <AppShell
       primaryAction={
-        <button
-          onClick={fetchData}
-          disabled={isLoading}
-          className="btn-tactile-secondary inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl"
-        >
-          <RefreshCw
-            className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand-blue dark:text-brand-sky" : ""}`}
-          />
-          <span>Sync Now</span>
-        </button>
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Automatic Live Sync Indicator */}
+          <div 
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold select-none shadow-2xs"
+            title={`Real-time sync active (polled every 10s). Last synced: ${lastSyncedAt.toLocaleTimeString()}`}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="hidden sm:inline">Auto-Sync</span>
+            <span className="sm:hidden">Live</span>
+          </div>
+
+          <button
+            onClick={() => fetchData(false)}
+            disabled={isLoading}
+            className="btn-tactile-secondary inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl"
+            title="Instant manual sync"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand-blue dark:text-brand-sky" : ""}`}
+            />
+            <span>Refresh</span>
+          </button>
+        </div>
       }
     >
       <div className="space-y-8">
@@ -157,7 +185,7 @@ export default function DashboardPage() {
           <div className="p-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-2xl flex items-center justify-between text-rose-700 dark:text-rose-300 text-sm animate-fadeIn">
             <span>{error}</span>
             <button
-              onClick={fetchData}
+              onClick={() => fetchData(false)}
               className="underline font-semibold hover:text-rose-800 dark:hover:text-rose-200"
             >
               Retry

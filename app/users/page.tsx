@@ -30,6 +30,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<FirestoreUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date>(new Date());
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,9 +47,9 @@ export default function UsersPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch users with optional search query
-  const fetchUsers = useCallback(async (search = "") => {
-    setIsLoading(true);
+  // Fetch users with optional search query (supports silent auto-sync)
+  const fetchUsers = useCallback(async (search = "", silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const url = search.trim()
         ? `/api/users?search=${encodeURIComponent(search.trim())}`
@@ -57,24 +58,37 @@ export default function UsersPage() {
       const data = await res.json();
       if (res.ok && data.users) {
         setUsers(data.users);
-      } else {
+        setLastSyncedAt(new Date());
+      } else if (!silent) {
         toastError(data.error || "Failed to load users");
       }
     } catch {
-      toastError("Network error: Could not retrieve users.");
+      if (!silent) {
+        toastError("Network error: Could not retrieve users.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [toastError]);
 
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchUsers(searchQuery);
+      fetchUsers(searchQuery, false);
       setCurrentPage(1);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, fetchUsers]);
+
+  // Auto-sync polling every 12 seconds when idle
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isDetailDrawerOpen && !isDeleteModalOpen && !searchQuery.trim()) {
+        fetchUsers("", true);
+      }
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [fetchUsers, isDetailDrawerOpen, isDeleteModalOpen, searchQuery]);
 
   // Open detail & edit drawer
   const handleOpenDetail = (user: FirestoreUser) => {
@@ -163,20 +177,35 @@ export default function UsersPage() {
   return (
     <AppShell
       primaryAction={
-        <div className="flex items-center gap-2.5">
-          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#071326] border border-slate-200 dark:border-slate-800 text-xs text-brand-teal dark:text-teal-300 font-medium">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Automatic Live Sync Indicator */}
+          <div 
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold select-none shadow-2xs"
+            title={`Real-time sync active (polled every 12s). Last synced: ${lastSyncedAt.toLocaleTimeString()}`}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="hidden sm:inline">Auto-Sync</span>
+            <span className="sm:hidden">Live</span>
+          </div>
+
+          <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-[#071326] border border-slate-200 dark:border-slate-800 text-xs text-brand-teal dark:text-teal-300 font-medium">
             <Cpu className="w-3.5 h-3.5 text-brand-teal dark:text-teal-400" />
             Hardware Enrollment Only
           </span>
+
           <button
-            onClick={() => fetchUsers(searchQuery)}
+            onClick={() => fetchUsers(searchQuery, false)}
             disabled={isLoading}
             className="btn-tactile-secondary inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl"
+            title="Instant manual sync"
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-brand-blue dark:text-brand-sky" : ""}`}
             />
-            <span>Sync</span>
+            <span>Refresh</span>
           </button>
         </div>
       }
