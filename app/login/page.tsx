@@ -190,20 +190,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* Demo Credentials Helper Pill */}
-        <div className="mt-8 pt-5 border-t border-slate-200 dark:border-slate-700/80 text-center">
-          <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-            Default credentials:{" "}
-            <span className="text-[#092B5A] dark:text-white font-mono font-bold">
-              admin@attendance.local
-            </span>{" "}
-            /{" "}
-            <span className="text-[#092B5A] dark:text-white font-mono font-bold">
-              AdminPass123!
-            </span>
-          </p>
-        </div>
       </div>
 
       {/* Forgot Password Helper Modal */}
@@ -229,7 +215,7 @@ export default function LoginPage() {
               Attendance Sys admin credentials are configured in the system environment variables (<code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded font-mono text-[11px]">ADMIN_EMAIL</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded font-mono text-[11px]">ADMIN_PASSWORD</code>).
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-              Default password: <span className="font-mono text-brand-blue dark:text-brand-sky font-semibold">AdminPass123!</span>
+              If you forgot your password, update <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded font-mono text-[11px]">ADMIN_PASSWORD</code> in your Vercel or hosting environment settings.
             </p>
             <button
               onClick={() => setShowForgotModal(false)}
