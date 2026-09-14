@@ -234,7 +234,7 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-xs text-[#0E6F70] dark:text-teal-300 mt-2 font-semibold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#0E6F70]" />
-                    Enrolled via Pi & Web
+                    Enrolled via Pi only
                   </p>
                 </div>
               </div>

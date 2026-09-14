@@ -88,9 +88,6 @@ export default function LoginPage() {
           <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-[#092B5A] dark:text-white tracking-tight leading-tight">
             Welcome to <span className="whitespace-nowrap">Attendance Sys</span>
           </h1>
-          <p className="text-xl sm:text-2xl font-heading font-extrabold text-slate-900 dark:text-slate-100 mt-1.5">
-            login now!
-          </p>
         </div>
 
         {/* Error Alert */}
@@ -186,7 +183,7 @@ export default function LoginPage() {
                 <span>Logging in...</span>
               </div>
             ) : (
-              <span className="text-white">Login</span>
+              <span className="text-white">Login Now!</span>
             )}
           </button>
         </form>
