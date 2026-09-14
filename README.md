@@ -1,43 +1,48 @@
-# Attendance Backend (API only)
+# Attendance Sys — Biometric & RFID Attendance Console
 
-Next.js API routes providing CRUD access to the same Firestore project your
-Raspberry Pi's `main_system.py` writes to. No UI is included here on
-purpose -- build that separately (e.g. in Antigravity) and point it at
-these routes.
+An administrative dashboard engineered for real-time monitoring and management of a Raspberry Pi–powered IoT attendance system supporting Facial Recognition, Optical Fingerprint scanning, and RFID card authentication.
 
-## Setup
+### Key Highlights
+- **Biometric & RFID Synchronization**: Real-time Firebase Firestore integration aggregating attendance logs from physical Raspberry Pi hardware terminals.
+- **Dual Light & Dark Mode Architecture**: System and manual theme switching with high-contrast surfaces adhering to WCAG standards.
+- **Adaptive Responsive Design**: Desktop executive tabular views and mobile touch-friendly inspection cards.
+- **Spreadsheet Export**: Formatted Microsoft Excel (.xlsx) export with sequential ID generation and animated progress modal.
+- **Administrative Security**: JWT cookie-based session management with protected administrative routes and destructive action verification modals.
+
+### Tech Stack
+- **Framework**: Next.js 16 (App Router) & React 19
+- **Styling**: Vanilla CSS & Tailwind CSS
+- **Database**: Google Firebase Firestore (Admin SDK)
+- **Icons & UI**: Lucide React & Custom SVG components
+- **Export Engine**: SheetJS (xlsx)
+
+---
+
+## Setup & Local Development
 
 ```bash
 npm install
-cp .env.local.example .env.local
-# edit .env.local: point GOOGLE_APPLICATION_CREDENTIALS at your service
-# account key file (same kind of file as firebase_key.json on the Pi)
+cp .env.example .env.local
+# Edit .env.local: set ADMIN_EMAIL, ADMIN_PASSWORD, SESSION_SECRET, and GOOGLE_APPLICATION_CREDENTIALS
 npm run dev
 ```
 
-Visit `http://localhost:3000` for a quick index of available routes.
+Visit `http://localhost:3000` to access the console.
+
+---
 
 ## API Reference
 
 ### Users
-
 | Method | Route | Description |
 |---|---|---|
 | GET | `/api/users` | List all users. `?search=` filters by name or RFID UID. |
-| POST | `/api/users` | Create a user (`name`, `rfid_uid` required). See caveat below. |
+| POST | `/api/users` | Create a user (`name`, `rfid_uid` required). |
 | GET | `/api/users/:id` | Get one user. |
 | PATCH | `/api/users/:id` | Update `name` only. |
-| DELETE | `/api/users/:id` | Delete the Firestore record. See caveat below. |
-
-**Example: create a user**
-```bash
-curl -X POST http://localhost:3000/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Jane Doe", "rfid_uid": "123456789"}'
-```
+| DELETE | `/api/users/:id` | Delete the Firestore record. |
 
 ### Logs
-
 | Method | Route | Description |
 |---|---|---|
 | GET | `/api/logs` | List logs. Filters: `?from=YYYY-MM-DD&to=YYYY-MM-DD&userId=4&status=Verified` |
@@ -45,32 +50,9 @@ curl -X POST http://localhost:3000/api/users \
 | PATCH | `/api/logs/:id` | Update `status` and/or `timestamp`. |
 | DELETE | `/api/logs/:id` | Delete a log entry. |
 
-## Important caveats (read before wiring up delete/create in your UI)
+---
 
-1. **No two-way sync with the Pi.** This API only talks to Firestore. The
-   Pi's local SQLite database, its fingerprint sensor's flash memory, and
-   its trained face data (`face_trainer.yml`) are completely separate and
-   are NOT updated by anything in this project. Deleting a user here does
-   not stop the Pi's hardware from recognizing them.
-
-2. **User creation uses a separate id range.** Users created via
-   `POST /api/users` get ids starting at 100,000+ specifically so they
-   never collide with the Pi's own autoincrement ids (which start at 1).
-   If the same person is later enrolled on the Pi's physical hardware,
-   that creates a *second*, unrelated user record with a different (low)
-   id -- there's no merging between the two right now.
-
-3. **`rfid_uid` and `fingerprint_id` are not editable via PATCH.**
-   Only `name` can be changed. Changing the RFID UID or fingerprint index
-   here would desync from what's physically programmed into the card/
-   sensor on the Pi.
-
-4. **No authentication is included.** Anyone who can reach these routes
-   can read/write/delete everything. Add auth (even a simple shared-secret
-   check in middleware) before deploying this anywhere reachable from the
-   internet.
-
-## Firestore schema (must match what main_system.py writes)
+## Firestore Schema
 
 ```
 users/{id}
